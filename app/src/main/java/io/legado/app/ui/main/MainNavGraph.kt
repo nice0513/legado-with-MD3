@@ -12,8 +12,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,6 +37,8 @@ import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import io.legado.app.R
 import io.legado.app.constant.BookType
+import io.legado.app.core.ui.morph.BookCoverMorphAnchors
+import io.legado.app.core.ui.morph.isAnchorVisibleInScreen
 import io.legado.app.core.ui.player.PlayerMorphAppearance
 import io.legado.app.core.ui.player.PlayerMorphHost
 import io.legado.app.domain.model.BookSearchScope
@@ -218,20 +218,15 @@ private fun webViewEntryMetadata(predictiveBackEnabled: Boolean) = metadata {
     }
 }
 
-/** Full-screen book destinations share the same scene fade as the text reader. */
-private fun readerEntryMetadata(predictiveBackEnabled: Boolean) = metadata {
-    put(NavDisplay.TransitionKey) {
-        fadeIn(animationSpec = tween(600)) togetherWith fadeOut(animationSpec = tween(600))
-    }
-    put(NavDisplay.PopTransitionKey) {
-        fadeIn(animationSpec = tween(600)) togetherWith fadeOut(animationSpec = tween(600))
-    }
-    if (predictiveBackEnabled) {
+/** Full-screen book destinations use modal overlay scene strategy and zero nav display transitions; animations are managed by BookMorphHost. */
+private fun readerEntryMetadata(predictiveBackEnabled: Boolean) =
+    ModalOverlaySceneStrategy.modalOverlay() + metadata {
+        put(NavDisplay.TransitionKey) { EnterTransition.None togetherWith ExitTransition.None }
+        put(NavDisplay.PopTransitionKey) { EnterTransition.None togetherWith ExitTransition.None }
         put(NavDisplay.PredictivePopTransitionKey) { _ ->
-            fadeIn(animationSpec = tween(600)) togetherWith fadeOut(animationSpec = tween(600))
+            EnterTransition.None togetherWith ExitTransition.None
         }
     }
-}
 
 /**
  * 以底部弹层呈现的目的地（听书播放页、有声书播放页）。
@@ -740,7 +735,12 @@ fun MainActivity.mainEntryProvider(
             bookUrl = route.bookUrl,
             onExit = {
                 if (backStack.size > 1) {
-                    onNavigateBack()
+                    MainNavigator.navigateBack(
+                        this@mainEntryProvider,
+                        backStack,
+                        navRouteTracker,
+                        fromRoute = route,
+                    )
                 } else {
                     // 通知 / 深链可能让阅读器成为栈里唯一一项：没有"当前页"可退，
                     // 按约定落到书架，而不是把应用关掉
@@ -822,6 +822,9 @@ fun MainActivity.mainEntryProvider(
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = LocalNavAnimatedContentScope.current,
                 sharedCoverKey = route.sharedCoverKey,
+                isTopRoute = (backStack.lastOrNull() as? MainRouteReadBook)?.let {
+                    route.bookUrl == null || it.bookUrl == route.bookUrl
+                } ?: false,
                 onEffectsReady = { effectsReady.complete(Unit) },
                 onOpenSearch = { word, bookUrl, autoFocus ->
                     onNavigateToRoute(
@@ -841,6 +844,14 @@ fun MainActivity.mainEntryProvider(
                 },
                 onOpenTtsCache = {
                     onNavigateToRoute(MainRouteTtsCache)
+                },
+                onNavigateBack = {
+                    MainNavigator.navigateBack(
+                        this@mainEntryProvider,
+                        backStack,
+                        navRouteTracker,
+                        fromRoute = route,
+                    )
                 },
             )
 
@@ -877,6 +888,7 @@ fun MainActivity.mainEntryProvider(
                         activeReadBookRoute = null
                     }
                     MainActivity.hasActiveReadBookRoute = false
+                    controller.onClose = null
                     controller.clearTts()
                     this@mainEntryProvider.toggleSystemBar(configuration.appShell.showStatusBar)
                 }
@@ -915,7 +927,17 @@ fun MainActivity.mainEntryProvider(
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = LocalNavAnimatedContentScope.current,
             sharedCoverKey = route.sharedCoverKey,
-            onFinish = { onNavigateBack() },
+            isTopRoute = (backStack.lastOrNull() as? MainRouteReadManga)?.let {
+                route.bookUrl == null || it.bookUrl == route.bookUrl
+            } ?: false,
+            onFinish = {
+                MainNavigator.navigateBack(
+                    this@mainEntryProvider,
+                    backStack,
+                    navRouteTracker,
+                    fromRoute = route,
+                )
+            },
             onOpenBookInfo = { name, author, bookUrl ->
                 onNavigateToRoute(MainRouteBookInfo(name, author, bookUrl))
             },
@@ -1127,22 +1149,7 @@ fun MainActivity.mainEntryProvider(
     }
 
     entry<MainRouteBookInfo>(
-        metadata = metadata {
-            put(NavDisplay.TransitionKey) {
-                fadeIn(animationSpec = tween(300)) togetherWith
-                        fadeOut(animationSpec = tween(300))
-            }
-            put(NavDisplay.PopTransitionKey) {
-                fadeIn(animationSpec = tween(300)) togetherWith
-                        fadeOut(animationSpec = tween(300))
-            }
-            if (configuration.appShell.predictiveBackEnabled) {
-                put(NavDisplay.PredictivePopTransitionKey) { _ ->
-                    fadeIn(animationSpec = tween(300)) togetherWith
-                            fadeOut(animationSpec = tween(300))
-                }
-            }
-        }
+        metadata = readerEntryMetadata(configuration.appShell.predictiveBackEnabled)
     ) { route ->
         val bookInfoViewModel = koinViewModel<BookInfoViewModel>(key = "BookInfo:${route.bookUrl}")
         BookInfoRouteScreen(
@@ -1152,8 +1159,22 @@ fun MainActivity.mainEntryProvider(
             origin = route.origin,
             coverPath = route.coverPath,
             viewModel = bookInfoViewModel,
-            onBack = { onNavigateBack() },
-            onFinish = { _, _ -> onNavigateBack() },
+            onBack = {
+                MainNavigator.navigateBack(
+                    this@mainEntryProvider,
+                    backStack,
+                    navRouteTracker,
+                    fromRoute = route,
+                )
+            },
+            onFinish = { _, _ ->
+                MainNavigator.navigateBack(
+                    this@mainEntryProvider,
+                    backStack,
+                    navRouteTracker,
+                    fromRoute = route,
+                )
+            },
             onOpenSearch = { keyword ->
                 onNavigateToRoute(MainRouteSearch(key = keyword))
             },
@@ -1173,7 +1194,7 @@ fun MainActivity.mainEntryProvider(
                         bookUrl = bookUrl,
                         inBookshelf = inBookshelf,
                         chapterChanged = chapterChanged,
-                        sharedCoverKey = route.sharedCoverKey ?: bookCoverSharedElementKey(route.bookUrl),
+                        sharedCoverKey = bookInfoCoverSharedElementKey(bookUrl),
                     )
                 )
             },
@@ -1184,8 +1205,7 @@ fun MainActivity.mainEntryProvider(
                         inBookshelf = inBookshelf,
                         chapterChanged = chapterChanged,
                         openRequestId = System.nanoTime(),
-                        sharedCoverKey = route.sharedCoverKey
-                            ?: bookCoverSharedElementKey(route.bookUrl),
+                        sharedCoverKey = bookInfoCoverSharedElementKey(bookUrl),
                     )
                 )
             },
@@ -1194,8 +1214,7 @@ fun MainActivity.mainEntryProvider(
                     MainRouteAudioPlay(
                         bookUrl = bookUrl,
                         inBookshelf = inBookshelf,
-                        sharedCoverKey = route.sharedCoverKey
-                            ?: bookCoverSharedElementKey(route.bookUrl),
+                        sharedCoverKey = bookInfoCoverSharedElementKey(bookUrl),
                     )
                 )
             },
@@ -1223,6 +1242,7 @@ fun MainActivity.mainEntryProvider(
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = LocalNavAnimatedContentScope.current,
             sharedCoverKey = route.sharedCoverKey ?: bookCoverSharedElementKey(route.bookUrl),
+            isTopRoute = (backStack.lastOrNull() as? MainRouteBookInfo)?.bookUrl == route.bookUrl,
         )
     }
 
@@ -1598,10 +1618,37 @@ internal fun MainActivity.AudioPlayerMorphOverlay(
                 }
 
                 AudioPlayEffect.Finish -> {
+                    if (!morph.hasCapsuleAnchors) {
+                        val anchor = BookCoverMorphAnchors.get(bookUrl)
+                        if (anchor != null && !anchor.bounds.isEmpty && isAnchorVisibleInScreen(
+                                anchor.bounds,
+                                morph.screenBounds
+                            )
+                        ) {
+                            morph.reportBookCoverAnchor(anchor.bounds, anchor.cornerRadiusPx)
+                        }
+                    }
                     morph.animateTo(0f)
                     finishAudioPlay()
                 }
             }
+        }
+    }
+    val refreshAudioAnchor = {
+        if (!morph.hasCapsuleAnchors) {
+            val anchor = BookCoverMorphAnchors.get(bookUrl)
+            if (anchor != null && !anchor.bounds.isEmpty && isAnchorVisibleInScreen(
+                    anchor.bounds,
+                    morph.screenBounds
+                )
+            ) {
+                morph.reportBookCoverAnchor(anchor.bounds, anchor.cornerRadiusPx)
+            }
+        }
+    }
+    LaunchedEffect(bookUrl, visible) {
+        if (visible && morph.progress.value == 0f) {
+            refreshAudioAnchor()
         }
     }
     PlayerMorphHost(
@@ -1616,6 +1663,8 @@ internal fun MainActivity.AudioPlayerMorphOverlay(
         visible = visible,
         awaitCapsuleAnchor = awaitCapsuleAnchor,
         predictiveBackEnabled = predictiveBackEnabled,
+        verticalDragEnabled = true,
+        onBeforeCollapse = refreshAudioAnchor,
         backEnabled = uiState.activeSheet == null && !showAudioChangeSource,
         onDismiss = ::finishAudioPlay,
     ) { onCollapse ->
