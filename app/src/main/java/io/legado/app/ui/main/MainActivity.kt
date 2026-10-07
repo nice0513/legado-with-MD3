@@ -33,6 +33,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -41,6 +42,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -339,6 +341,7 @@ open class MainActivity : BaseComposeActivity(), AudioPlay.CallBack {
         installSplashScreen()
         shouldApplyDefaultToRead = savedInstanceState == null
         restoredReadBookRoute = savedInstanceState?.restoreReadBookRoute()
+            ?: navRouteTracker.lastReadBookRoute()
         super.onCreate(savedInstanceState)
 
         if (checkStartupRoute()) return
@@ -416,6 +419,7 @@ open class MainActivity : BaseComposeActivity(), AudioPlay.CallBack {
         val orientation = resources.configuration.orientation
         val smallestWidthDp = resources.configuration.smallestScreenWidthDp
         val configuration = LocalAppUiConfiguration.current
+        val predictiveBackEnabled by rememberUpdatedState(configuration.appShell.predictiveBackEnabled)
         val tabletInterface = configuration.appShell.tabletInterface
         val defaultToReadFlow = remember(otherSettingsGateway) {
             otherSettingsGateway.settings
@@ -614,12 +618,27 @@ open class MainActivity : BaseComposeActivity(), AudioPlay.CallBack {
                     ) {
                         NavDisplay(
                             backStack = backStack,
+                            // 交给 nav3 装上 SharedEntryInSceneNavEntryDecorator：这是跨 scene 保持
+                            // 共享元素登记的官方机制。少了它，书架 scene 一被销毁封面的登记就没了——
+                            // 打开书后「马上返回」还有封面转场、'待一会儿再返回'会退化成
+                            // 普通淡入淡出。
+                            sharedTransitionScope = this@SharedTransitionLayout,
                             entryDecorators = listOf(
                                 rememberSaveableStateHolderNavEntryDecorator(),
                                 rememberViewModelStoreNavEntryDecorator(),
                             ),
                             sceneStrategies = listOf(
-                                remember { ModalOverlaySceneStrategy() },
+                                remember {
+                                    ModalOverlaySceneStrategy(
+                                        isTopEntry = {
+                                            // Nav3's default content key also includes the route type.
+                                            backStack.lastOrNull()?.let { top ->
+                                                NavEntry(top) {}.contentKey == it
+                                            } == true
+                                        },
+                                        predictiveBackEnabled = { predictiveBackEnabled },
+                                    )
+                                },
                                 SinglePaneSceneStrategy(),
                             ),
                             transitionSpec = {
