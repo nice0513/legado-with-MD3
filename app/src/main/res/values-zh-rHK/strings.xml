@@ -990,6 +990,9 @@
     <string name="use_default_cover">總是使用默認封面</string>
     <string name="use_default_cover_s">總是使用默認封面,唔顯示網路封面</string>
     <string name="font_size">字號</string>
+    <string name="title_size_relative">相對正文字號</string>
+    <string name="title_size_relative_desc">兼容其他版本</string>
+    <string name="title_size_offset">字號偏移</string>
     <string name="title_margin_top">上邊距</string>
     <string name="title_margin_bottom">下邊距</string>
     <string name="show">顯示</string>
@@ -1695,6 +1698,8 @@
     <string name="ai_test_success_no_models">AI 連線測試成功，但未找到任何模型</string>
     <string name="ai_test_success_with_models">AI 連線測試成功（共找到 %1$d 個模型）</string>
     <string name="ai_test_failed">AI 連線測試失敗</string>
+    <string name="ai_local_network_permission_denied">需要本機網路權限才能連線區域網路內的 AI 服務</string>
+    <string name="local_network_permission_required">無法存取區域網路位址，請在系統設定中授予「鄰近裝置」權限</string>
     <string name="ai_thinking_auto">自動</string>
     <string name="ai_thinking_collapse">收起</string>
     <string name="ai_thinking_deep">深度</string>
@@ -2428,6 +2433,9 @@
     <string name="tip_compose_set">這些選項僅影響以 Compose 重寫的介面。已停用的選項為佔位符，將在實作後啟用。</string>
     <string name="tip_custom_mode">主題引擎依賴 Monet。動態顏色和自訂主題在 Android 12 以下的裝置上不生效。</string>
     <string name="title_bar_icon_position">標題欄圖標位置</string>
+    <string name="title_bar_action_buttons">配置頂部按鈕</string>
+    <string name="only_online_books">僅線上書籍</string>
+    <string name="only_local_books">僅本機書籍</string>
     <string name="title_bar_icons">標題欄圖標</string>
     <string name="title_bar_layout">標題欄佈局</string>
     <string name="title_bar_mode">選單中的標題模式</string>

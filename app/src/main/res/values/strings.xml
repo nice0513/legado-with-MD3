@@ -1199,6 +1199,9 @@
     <string name="content_src">Content source code</string>
     <string name="list_src">List source code</string>
     <string name="font_size">Font Size</string>
+    <string name="title_size_relative">Relative to body text size</string>
+    <string name="title_size_relative_desc">Compatible with other versions</string>
+    <string name="title_size_offset">Font size offset</string>
     <string name="color">Color</string>
     <string name="reset_to_body_color">Reset to body text color</string>
     <string name="title_margin_top">Margin Top</string>
@@ -2359,6 +2362,8 @@
     <string name="ai_test_success_no_models">AI connection test succeeded, but no models found</string>
     <string name="ai_test_success_with_models">AI connection test succeeded (%1$d models found)</string>
     <string name="ai_test_failed">AI connection test failed</string>
+    <string name="ai_local_network_permission_denied">Local network permission is required to reach this AI service</string>
+    <string name="local_network_permission_required">Can\'t reach the local network. Grant the \"Nearby devices\" permission to this app in system settings</string>
     <string name="ai_profile_counts">Providers: %1$d, models: %2$d, presets: %3$d</string>
     <string name="homepage_load_more_failed">Failed to load more: %1$s</string>
     <string name="homepage_module_duplicate_infinite">This group already has an infinite loading module</string>
@@ -2462,6 +2467,9 @@
     <string name="title_bar_layout">Title Bar Layout</string>
     <string name="show_title_bar_icons">Show floating icons</string>
     <string name="title_bar_compact">Compact top bar buttons</string>
+    <string name="title_bar_action_buttons">Configure Top Buttons</string>
+    <string name="only_online_books">Online books only</string>
+    <string name="only_local_books">Local books only</string>
     <string name="title_bar_icon_position">Floating icon position</string>
     <string name="position_top_start">Top left</string>
     <string name="position_top_end">Top right</string>
@@ -3397,6 +3405,9 @@
     <string name="cloud_tts_no_available_engine">Install a system TTS, add a cloud TTS engine, or import an HTTP TTS first</string>
     <string name="cloud_tts_voice_engine_unavailable">The engine used by this voice is currently unavailable</string>
     <string name="cloud_tts_cannot_change_engine">The engine cannot be changed while editing. Create a new voice preset instead.</string>
+    <string name="cloud_tts_restore_excluded_voices">Restore excluded voices (%1$d)</string>
+    <string name="cloud_tts_no_excluded_voices">No excluded voices</string>
+    <string name="cloud_tts_restored_voices">Restored %1$d voices</string>
     <string name="cloud_tts_engine_default_voice">Engine default voice</string>
     <string name="cloud_tts_voice_count">Loaded %1$d voices</string>
     <string name="cloud_tts_cannot_change_native_voice">The native voice cannot be changed while editing. Create a new voice preset instead.</string>

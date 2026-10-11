@@ -1309,6 +1309,8 @@ class ReadBookViewModel(
                 buttonConfigDelegate.saveMenuButtons(intent.items)
             is ReadBookIntent.SaveTitleBarButtonConfig ->
                 buttonConfigDelegate.saveTitleBarButtons(intent.items)
+            is ReadBookIntent.SaveTitleBarActionConfig ->
+                buttonConfigDelegate.saveTitleBarActions(intent.items)
             is ReadBookIntent.SaveMoreActionsConfig ->
                 buttonConfigDelegate.saveMoreActions(intent.items)
 
@@ -1991,6 +1993,7 @@ class ReadBookViewModel(
         titleLineSpacingExtra = ReadBookConfig.titleLineSpacingExtra,
         titleLineSpacingSub = ReadBookConfig.titleLineSpacingSub,
         titleSize = ReadBookConfig.titleSize,
+        titleSizeRelative = ReadBookConfig.resolvedTitleSizeRelative,
         titleTopSpacing = ReadBookConfig.titleTopSpacing,
         titleBottomSpacing = ReadBookConfig.titleBottomSpacing,
         titleColor = ReadBookConfig.titleColor,
@@ -2144,6 +2147,7 @@ class ReadBookViewModel(
                 readMenuCustomIcons = ReadBookConfig.readMenuCustomIcons.toImmutableMap(),
                 titleBarButtons = current.menuConfig.titleBarButtons,
                 bottomBarButtons = current.menuConfig.bottomBarButtons,
+                titleBarActions = current.menuConfig.titleBarActions,
                 moreActionItems = buttonConfigDelegate
                     .parseMoreActions(readSettingsRepository.currentSettings.moreActionsConfig)
                     .toImmutableList(),

@@ -1163,6 +1163,9 @@
     <string name="use_default_cover">总是使用默认封面</string>
     <string name="use_default_cover_s">总是显示默认封面（不显示网络封面）</string>
     <string name="font_size">字号</string>
+    <string name="title_size_relative">相对正文字号</string>
+    <string name="title_size_relative_desc">兼容其他版本</string>
+    <string name="title_size_offset">字号偏移</string>
     <string name="color">颜色</string>
     <string name="reset_to_body_color">重置为正文颜色</string>
     <string name="title_margin_top">上边距</string>
@@ -2415,6 +2418,8 @@
     <string name="ai_test_success_no_models">AI 连接测试成功，但未找到任何模型</string>
     <string name="ai_test_success_with_models">AI 连接测试成功（共找到 %1$d 个模型）</string>
     <string name="ai_test_failed">AI 连接测试失败</string>
+    <string name="ai_local_network_permission_denied">需要本地网络权限才能访问局域网内的 AI 服务</string>
+    <string name="local_network_permission_required">无法访问局域网地址，请在系统设置中授予「附近的设备」权限</string>
     <string name="ai_profile_counts">供应商：%1$d，模型：%2$d，预设：%3$d</string>
     <string name="read_menu_bg_color_summary">阅读顶栏和底栏背景色</string>
     <string name="read_menu_text_color">菜单文字颜色</string>
@@ -2439,6 +2444,9 @@
     <string name="title_bar_layout">顶栏布局</string>
     <string name="show_title_bar_icons">显示浮动图标</string>
     <string name="title_bar_compact">精简顶部按钮</string>
+    <string name="title_bar_action_buttons">配置顶部按钮</string>
+    <string name="only_online_books">仅在线书籍</string>
+    <string name="only_local_books">仅本地书籍</string>
     <string name="title_bar_icon_position">浮动图标位置</string>
     <string name="position_top_start">左上</string>
     <string name="position_top_end">右上</string>
@@ -3393,6 +3401,9 @@
     <string name="cloud_tts_no_available_engine">请先安装系统 TTS、添加云 TTS 引擎或导入 HTTP TTS</string>
     <string name="cloud_tts_voice_engine_unavailable">该音色使用的引擎当前不可用</string>
     <string name="cloud_tts_cannot_change_engine">编辑预设时不能更换引擎，请新建音色预设</string>
+    <string name="cloud_tts_restore_excluded_voices">恢复已排除的音色（%1$d）</string>
+    <string name="cloud_tts_no_excluded_voices">没有已排除的音色</string>
+    <string name="cloud_tts_restored_voices">已恢复 %1$d 个音色</string>
     <string name="cloud_tts_engine_default_voice">引擎默认音色</string>
     <string name="cloud_tts_voice_count">已获取 %1$d 个音色</string>
     <string name="cloud_tts_cannot_change_native_voice">编辑预设时不能更换原生音色，请新建音色预设</string>
