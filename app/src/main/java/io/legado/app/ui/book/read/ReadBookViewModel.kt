@@ -75,6 +75,7 @@ import io.legado.app.model.activeReadAloudProgress
 import io.legado.app.model.analyzeRule.AnalyzeRule
 import io.legado.app.model.analyzeRule.AnalyzeRule.Companion.setChapter
 import io.legado.app.model.analyzeRule.AnalyzeRule.Companion.setCoroutineContext
+import io.legado.app.model.reader.isPayable
 import io.legado.app.model.translation.TranslationChapterStatus
 import io.legado.app.service.BaseReadAloudService
 import io.legado.app.ui.book.read.sheet.ReaderBookSheetTab
@@ -910,15 +911,14 @@ class ReadBookViewModel(
             is ReadBookIntent.MoveReplaceRule ->
                 replaceRuleDelegate.move(intent.draggedId, intent.anchorId, intent.afterAnchor)
             is ReadBookIntent.DisableEffectiveReplace -> replaceRuleDelegate.disable(intent.rule)
-            ReadBookIntent.DisableChineseConverter -> {
-                configUpdateDelegate.handle(ConfigUpdate.ChineseConverterType(0))
-            }
+            ReadBookIntent.DisableChineseConverter -> configUpdateDelegate.handle(ConfigUpdate.ChineseConverterType(0))
             ReadBookIntent.DisableReSegment -> {
                 ReadBook.book?.setReSegment(false)
                 ReadBook.loadContent(false)
                 _uiState.update { it.copy(reSegment = false) }
             }
             is ReadBookIntent.ToggleTranslation -> toggleTranslation()
+            ReadBookIntent.OpenAiChat -> aiDelegate.openAiChat(_effects::tryEmit)
             is ReadBookIntent.OpenChapterSummary -> aiDelegate.openChapterSummary()
             is ReadBookIntent.OpenAiCurrentChapterRewrite -> aiDelegate.openAiCurrentChapterRewrite()
             is ReadBookIntent.RetryChapterSummary -> aiDelegate.retryChapterSummary()
@@ -2085,6 +2085,7 @@ class ReadBookViewModel(
             chapterName = chapterInput?.displayTitle ?: "",
             chapterUrl = chapterInput?.chapter?.url ?: "",
             chapterSize = ReadBook.chapterSize,
+            chapterPayable = chapterInput?.isPayable == true,
             durChapterIndex = ReadBook.durChapterIndex,
             durChapterPos = ReadBook.durChapterPos,
             isLocalBook = ReadBook.isLocalBook,
