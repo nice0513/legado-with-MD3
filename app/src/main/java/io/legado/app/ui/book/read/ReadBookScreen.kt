@@ -31,7 +31,6 @@ import io.legado.app.ui.book.read.sheet.ContentEditSheet
 import io.legado.app.ui.book.read.sheet.DownloadSheet
 import io.legado.app.ui.book.read.sheet.BubbleStyleSheet
 import io.legado.app.ui.book.read.sheet.EyeProtectionConfigSheet
-import io.legado.app.ui.book.read.sheet.ParagraphReviewSheet
 import io.legado.app.ui.book.read.sheet.FloatingBarIconConfigSheet
 import io.legado.app.ui.book.read.sheet.HighlightRuleConfigSheet
 import io.legado.app.ui.book.read.sheet.MarkingSheet
@@ -577,14 +576,6 @@ private fun ReadBookSheetContent(
             },
         )
     }
-    if (state.activeSheet is ReadBookSheet.ParagraphReview) {
-        ParagraphReviewSheet(
-            show = visibleState.findSheet<ReadBookSheet.ParagraphReview>() != null,
-            request = visibleState.findSheet<ReadBookSheet.ParagraphReview>(),
-            onDismissRequest =
-                dismissSheet(visibleState.findSheet<ReadBookSheet.ParagraphReview>()),
-        )
-    }
     if (state.activeSheet is ReadBookSheet.EyeProtection) {
         EyeProtectionConfigSheet(
             show = visibleState.findSheet<ReadBookSheet.EyeProtection>() != null,
@@ -874,6 +865,10 @@ private fun ReadBookSheetContent(
 
                 is ReadBookSheet.Download -> {
                     DownloadSheet(
+                        preview = state.cacheRangePreview,
+                        onScanRange = { start, end ->
+                            onIntent(ReadBookIntent.ScanCacheRange(start, end))
+                        },
                         onDismissRequest = dismissSheet,
                         onDownload = { start, end ->
                             onIntent(ReadBookIntent.DismissSheet)
