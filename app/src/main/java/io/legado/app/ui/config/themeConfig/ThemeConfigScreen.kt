@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -86,7 +87,8 @@ import io.legado.app.ui.widget.components.button.series.MediumTonalButton
 import io.legado.app.ui.widget.components.card.InfoCard
 import io.legado.app.ui.widget.components.dialog.ColorPickerSheet
 import io.legado.app.ui.widget.components.dialog.TimePickerDialog
-import io.legado.app.ui.widget.components.menuItem.LocalUseWindowPopupForMochiMenu
+import io.legado.app.ui.widget.components.menu.AppChoiceDropdown
+import io.legado.app.ui.widget.components.menu.AppChoiceOption
 import io.legado.app.ui.widget.components.settingItem.ClickableSettingItem
 import io.legado.app.ui.widget.components.settingItem.DropdownListSettingItem
 import io.legado.app.ui.widget.components.settingItem.SettingItem
@@ -97,6 +99,7 @@ import io.legado.app.ui.widget.components.text.AnimatedTextLine
 import io.legado.app.ui.widget.components.topbar.GlassMediumFlexibleTopAppBar
 import io.legado.app.ui.widget.components.topbar.GlassTopAppBarDefaults
 import io.legado.app.ui.widget.components.topbar.TopBarNavigationButton
+import kotlinx.collections.immutable.toImmutableList
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -111,6 +114,7 @@ fun ThemeConfigScreen(
     val theme = state.theme
     val scrollBehavior = GlassTopAppBarDefaults.defaultScrollBehavior()
     val context = LocalContext.current
+    val resources = LocalResources.current
     fun updateTheme(transform: (ThemeSettings) -> ThemeSettings) =
         onIntent(ThemeConfigIntent.UpdateTheme(transform))
     val fontFolderState = remember(state.fontFolder) {
@@ -179,7 +183,10 @@ fun ThemeConfigScreen(
 
 
                 SplicedColumnGroup(title = stringResource(R.string.theme)) {
-                    if (isMiuixEngine) {
+                    // 非 M3 主题风格（Miuix/Mochi/Coui）统一使用下拉组件，与 Miuix 开启时一致。
+                    val useDropdownItems = composeEngine != ComposeEngine.Material
+
+                    if (useDropdownItems) {
                         SearchableSetting("theme.theme_mode") {
                             DropdownListSettingItem(
                                 title = stringResource(R.string.theme_mode),
@@ -194,26 +201,37 @@ fun ThemeConfigScreen(
                             )
                         }
 
-                        SearchableSetting("theme.miuix_monet") {
-                            SwitchSettingItem(
-                                title = stringResource(R.string.miuix_monet),
-                                description = stringResource(R.string.miuix_monet_summary),
-                                checked = theme.useMiuixMonet,
-                                onCheckedChange = {
-                                    onIntent(ThemeConfigIntent.SetMiuixMonet(it))
-                                }
-                            )
+                        if (isMiuixEngine) {
+                            SearchableSetting("theme.miuix_monet") {
+                                SwitchSettingItem(
+                                    title = stringResource(R.string.miuix_monet),
+                                    description = stringResource(R.string.miuix_monet_summary),
+                                    checked = theme.useMiuixMonet,
+                                    onCheckedChange = {
+                                        onIntent(ThemeConfigIntent.SetMiuixMonet(it))
+                                    }
+                                )
+                            }
                         }
 
-                        if (theme.useMiuixMonet) {
+                        // Miuix 未启用 Monet 时配色由 Miuix 内置方案决定，不提供主题选择。
+                        if (!isMiuixEngine || theme.useMiuixMonet) {
                             val visibleThemes = themes.filter { (_, value) ->
                                 value != "4" || state.showEInkTheme
                             }
+                            val isCouiEngine = composeEngine == ComposeEngine.Coui
+                            val couiDefaultPalette = stringResource(R.string.coui_default_palette)
                             SearchableSetting("theme.theme") {
                                 DropdownListSettingItem(
                                     title = stringResource(R.string.theme),
                                     selectedValue = theme.appTheme,
-                                    displayEntries = visibleThemes.map { it.first }.toTypedArray(),
+                                    displayEntries = visibleThemes.map { (label, value) ->
+                                        if (isCouiEngine && value == "0") {
+                                            couiDefaultPalette
+                                        } else {
+                                            label
+                                        }
+                                    }.toTypedArray(),
                                     entryValues = visibleThemes.map { it.second }.toTypedArray(),
                                     onValueChange = { value ->
                                         onIntent(ThemeConfigIntent.SelectTheme(value))
@@ -230,9 +248,7 @@ fun ThemeConfigScreen(
                                 }
                             )
                         }
-                    }
 
-                    if (!isMiuixEngine) {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         val visibleThemes = themes.filter { (_, value) ->
@@ -290,17 +306,27 @@ fun ThemeConfigScreen(
                         } else {
                             appShell.composeEngine
                         }
-                        // Switching the root theme disposes the menu. Keep it in a separate
-                        // window so disposal cannot remove a DecorView child during measurement.
-                        CompositionLocalProvider(LocalUseWindowPopupForMochiMenu provides true) {
-                            DropdownListSettingItem(
+                        val entries = stringArrayResource(R.array.composeEngine) +
+                            (if (couiSupported) "COUI" else stringResource(R.string.coui_theme_requires_android_14))
+                        val values = stringArrayResource(R.array.composeEngine_value) + coui
+                        val options = values.mapIndexed { index, value ->
+                            AppChoiceOption(id = value, label = entries.getOrElse(index) { value })
+                        }.toImmutableList()
+                        AppChoiceDropdown(
+                            options = options,
+                            selectedId = selectedValue,
+                            onSelect = { onIntent(ThemeConfigIntent.SetComposeEngine(it)) },
+                            title = stringResource(R.string.compose_engine),
+                            unavailableIds = if (couiSupported) emptySet() else setOf(coui),
+                            // 切换根主题会立刻重建 composition。Mochi 的浮层挂在 DecorView 上，
+                            // 必须等它收起并摘掉再提交，否则会在测量期间移除 DecorView 子视图。
+                            commitAfterDismiss = true,
+                        ) {
+                            SettingItem(
                                 title = stringResource(R.string.compose_engine),
-                                selectedValue = selectedValue,
-                                displayEntries = stringArrayResource(R.array.composeEngine) +
-                                    (if (couiSupported) "COUI" else stringResource(R.string.coui_theme_requires_android_14)),
-                                entryValues = stringArrayResource(R.array.composeEngine_value) + coui,
-                                unavailableValues = if (couiSupported) emptySet() else setOf(coui),
-                                onValueChange = { onIntent(ThemeConfigIntent.SetComposeEngine(it)) },
+                                option = entries.getOrElse(values.indexOf(selectedValue)) { selectedValue },
+                                modifier = this.modifier,
+                                interactive = false,
                             )
                         }
                     }
@@ -380,7 +406,7 @@ fun ThemeConfigScreen(
                         SliderSettingItem(
                             title = stringResource(R.string.font_scale),
                             valueLabel = {
-                                context.getString(R.string.font_scale_summary, it / 10f)
+                                resources.getString(R.string.font_scale_summary, it / 10f)
                             },
                             value = appShell.fontScale.toFloat(),
                             defaultValue = 10f,
